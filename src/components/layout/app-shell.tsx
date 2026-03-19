@@ -2,13 +2,13 @@ import Link from 'next/link';
 import { PropsWithChildren } from 'react';
 
 const nav = [
-  { href: '/hq/dashboard', label: 'HQ Dashboard' },
-  { href: '/hq/outlets', label: 'Outlets' },
-  { href: '/hq/menu', label: 'Master Menu' },
-  { href: '/hq/assignments', label: 'Assignments' },
-  { href: '/hq/reports', label: 'Reports' },
-  { href: '/outlet/pos', label: 'Outlet POS' },
-  { href: '/outlet/inventory', label: 'Inventory' },
+  { id: 1, href: '/hq/dashboard', label: 'HQ Dashboard' },
+  { id: 2, href: '/hq/outlets', label: 'Outlets' },
+  { id: 3, href: '/hq/menu', label: 'Master Menu' },
+  { id: 4, href: '/hq/assignments', label: 'Assignments' },
+  { id: 5, href: '/hq/reports', label: 'Reports' },
+  { id: 6, href: '/outlet/pos', label: 'Outlet POS' },
+  { id: 7, href: '/outlet/inventory', label: 'Inventory' },
 ];
 
 export function AppShell({ children }: PropsWithChildren) {
@@ -19,7 +19,7 @@ export function AppShell({ children }: PropsWithChildren) {
         <p className="mb-8 text-sm text-muted-foreground">HQ and outlet operations in one dashboard.</p>
         <nav className="space-y-2">
           {nav.map((item) => (
-            <Link key={item.href} href={item.href} className="block rounded-lg px-3 py-2 text-sm hover:bg-slate-100">
+            <Link key={item.id} href={item.href as any} className="block rounded-lg px-3 py-2 text-sm hover:bg-slate-100">
               {item.label}
             </Link>
           ))}

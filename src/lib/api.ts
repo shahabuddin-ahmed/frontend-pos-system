@@ -136,6 +136,8 @@ export const api = {
   getOutlets: () => request<any[], Outlet[]>('/outlets', undefined, (items) => items.map(normalizeOutlet)),
   createOutlet: (payload: { name: string; code: string; location?: string; isActive?: boolean }) =>
     request<any, Outlet>('/outlets', { method: 'POST', body: JSON.stringify(payload) }, normalizeOutlet),
+  updateOutlet: (id: number, payload: Partial<Pick<Outlet, 'name' | 'location' | 'isActive'>>) =>
+    request<any, Outlet>(`/outlets/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }, normalizeOutlet),
 
   getHqMenu: () => request<any[], MasterMenuItem[]>('/menu-items', undefined, (items) => items.map(normalizeMasterMenuItem)),
   createMasterMenuItem: (payload: { name: string; sku: string; basePrice: number; isActive?: boolean }) =>
