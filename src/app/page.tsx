@@ -32,7 +32,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">Sell assigned menu items and generate sequential receipts.</p>
-              <Link href="/" className={buttonVariants()}>
+              <Link href="/outlet/pos" className={buttonVariants()}>
                 Open POS
               </Link>
             </CardContent>
