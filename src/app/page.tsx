@@ -43,7 +43,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">Set stock per outlet and monitor current quantity quickly.</p>
-              <Link href="/" className={buttonVariants()}>
+              <Link href="/outlet/inventory" className={buttonVariants()}>
                 Open inventory
               </Link>
             </CardContent>
