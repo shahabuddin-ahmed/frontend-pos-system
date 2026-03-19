@@ -140,6 +140,11 @@ export const api = {
   getHqMenu: () => request<any[], MasterMenuItem[]>('/menu-items', undefined, (items) => items.map(normalizeMasterMenuItem)),
   createMasterMenuItem: (payload: { name: string; sku: string; basePrice: number; isActive?: boolean }) =>
     request<any, MasterMenuItem>('/menu-items', { method: 'POST', body: JSON.stringify(payload) }, normalizeMasterMenuItem),
+  updateMasterMenuItem: (
+    id: number,
+    payload: Partial<Pick<MasterMenuItem, 'name' | 'basePrice' | 'isActive'>>,
+  ) =>
+    request<any, MasterMenuItem>(`/menu-items/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }, normalizeMasterMenuItem),
 
   assignMenuToOutlet: (payload: { outletId: number; masterMenuItemId: number; overridePrice?: number | null; isAvailable?: boolean }) =>
     request<any, OutletMenuItem>('/outlet-menu-items', { method: 'POST', body: JSON.stringify(payload) }, normalizeOutletMenuItem),
