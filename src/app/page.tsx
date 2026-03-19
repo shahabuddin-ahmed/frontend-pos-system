@@ -21,7 +21,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">Manage outlets, master menu, item assignments, and reports.</p>
-              <Link href="/" className={buttonVariants()}>
+              <Link href="/hq/dashboard" className={buttonVariants()}>
                 Open HQ panel
               </Link>
             </CardContent>
