@@ -4,6 +4,8 @@ import type {
   MasterMenuItem,
   Outlet,
   OutletMenuItem,
+  ReportPeriod,
+  ReportSummary,
   RevenueSummary,
   SaleItemPayload,
   SaleResponse,
@@ -114,6 +116,7 @@ function normalizeRevenueSummary(raw: any): RevenueSummary {
   return {
     totalRevenue: toNumber(raw.totalRevenue),
     outlet: {
+      id: raw.outlet?.id ? Number(raw.outlet.id) : undefined,
       name: raw.outlet?.name || 'Unknown outlet',
       code: raw.outlet?.code || '-',
     },
@@ -127,6 +130,17 @@ function normalizeTopItem(raw: any): TopItemSummary {
       name: raw.masterMenuItem?.name || 'Unknown item',
       sku: raw.masterMenuItem?.sku || '-',
     },
+  };
+}
+
+function normalizeReportSummary(raw: any): ReportSummary {
+  return {
+    period: raw.period,
+    totalRevenue: toNumber(raw.totalRevenue),
+    topOutlet: raw.topOutlet ? normalizeRevenueSummary(raw.topOutlet) : null,
+    selectedOutletId: raw.selectedOutletId == null ? null : Number(raw.selectedOutletId),
+    revenueByOutlet: Array.isArray(raw.revenueByOutlet) ? raw.revenueByOutlet.map(normalizeRevenueSummary) : [],
+    topItems: Array.isArray(raw.topItems) ? raw.topItems.map(normalizeTopItem) : [],
   };
 }
 
@@ -161,8 +175,14 @@ export const api = {
   createSale: (payload: { outletId: number; items: SaleItemPayload[] }) =>
     request<any, SaleResponse>('/sales', { method: 'POST', body: JSON.stringify(payload) }, normalizeSaleResponse),
 
-  getRevenueReport: () =>
-    request<any[], RevenueSummary[]>('/reports/revenue-by-outlet', undefined, (items) => items.map(normalizeRevenueSummary)),
-  getTopItemsReport: (outletId: number) =>
-    request<any[], TopItemSummary[]>(`/reports/top-items/${outletId}`, undefined, (items) => items.map(normalizeTopItem)),
+  getRevenueReport: (period: ReportPeriod = 'lifetime') =>
+    request<any[], RevenueSummary[]>(`/reports/revenue-by-outlet?period=${period}`, undefined, (items) => items.map(normalizeRevenueSummary)),
+  getTopItemsReport: (outletId: number, period: ReportPeriod = 'lifetime') =>
+    request<any[], TopItemSummary[]>(`/reports/top-items/${outletId}?period=${period}`, undefined, (items) => items.map(normalizeTopItem)),
+  getReportSummary: (period: ReportPeriod, outletId?: number) =>
+    request<any, ReportSummary>(
+      `/reports/summary?period=${period}${outletId ? `&outletId=${outletId}` : ''}`,
+      undefined,
+      normalizeReportSummary,
+    ),
 };
