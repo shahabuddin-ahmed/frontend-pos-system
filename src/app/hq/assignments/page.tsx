@@ -31,7 +31,7 @@ export default function AssignmentPage() {
   const buildRows = (menuData: MasterMenuItem[], assignedItems: OutletMenuItem[]) => {
     const assignedMap = new Map(assignedItems.map((item) => [item.masterMenuItemId, item]));
     setRows(
-      menuData.map((item) => {
+      menuData.filter((item) => item.isActive).map((item) => {
         const assignedItem = assignedMap.get(item.id);
         return {
           masterMenuItemId: item.id,
@@ -49,9 +49,10 @@ export default function AssignmentPage() {
       setLoading(true);
       setError(null);
       const [outletData, menuData] = await Promise.all([api.getOutlets(), api.getHqMenu()]);
-      setOutlets(outletData);
+      const activeOutlets = outletData.filter((outlet) => outlet.isActive);
+      setOutlets(activeOutlets);
       setMasterItems(menuData);
-      const firstOutletId = outletData[0]?.id ?? null;
+      const firstOutletId = activeOutlets[0]?.id ?? null;
       setSelectedOutletId(firstOutletId);
       if (firstOutletId) {
         const assignedItems = await api.getOutletMenuItems(firstOutletId);
@@ -133,6 +134,7 @@ export default function AssignmentPage() {
                 className="h-10 rounded-md border bg-background px-3 text-sm font-normal"
                 value={selectedOutletId ?? ''}
                 onChange={(event) => handleOutletChange(Number(event.target.value))}
+                disabled={outlets.length === 0}
               >
                 {outlets.map((outlet) => (
                   <option key={outlet.id} value={outlet.id}>{outlet.name}</option>
@@ -147,6 +149,8 @@ export default function AssignmentPage() {
 
             {!loading && !error ? (
               <div className="space-y-4">
+                {outlets.length === 0 ? <PageState message="No active outlets available for assignment." /> : null}
+                {outlets.length > 0 && rows.length === 0 ? <PageState message="No active menu items available for assignment." /> : null}
                 {rows.map((row, index) => (
                   <div key={row.masterMenuItemId} className="grid grid-cols-12 items-center gap-4 rounded-lg border p-4">
                     <input
@@ -171,7 +175,7 @@ export default function AssignmentPage() {
                     />
                   </div>
                 ))}
-                <Button onClick={handleSave} disabled={saving || !selectedOutletId}>{saving ? 'Saving...' : 'Save assignments'}</Button>
+                <Button onClick={handleSave} disabled={saving || !selectedOutletId || rows.length === 0}>{saving ? 'Saving...' : 'Save assignments'}</Button>
               </div>
             ) : null}
           </CardContent>
