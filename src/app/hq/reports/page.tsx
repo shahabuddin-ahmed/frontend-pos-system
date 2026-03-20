@@ -6,28 +6,31 @@ import { RevenueTable } from '@/features/reports/revenue-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageState } from '@/components/shared/page-state';
 import { api } from '@/lib/api';
-import type { Outlet, RevenueSummary, TopItemSummary } from '@/types';
+import type { Outlet, ReportPeriod, RevenueSummary, TopItemSummary } from '@/types';
+
+const PERIOD_OPTIONS: Array<{ value: ReportPeriod; label: string }> = [
+  { value: 'today', label: 'Today' },
+  { value: 'thisMonth', label: 'This Month' },
+  { value: 'lifetime', label: 'Lifetime' },
+];
 
 export default function ReportsPage() {
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [revenueRows, setRevenueRows] = useState<RevenueSummary[]>([]);
   const [topItems, setTopItems] = useState<TopItemSummary[]>([]);
   const [selectedOutletId, setSelectedOutletId] = useState<number | null>(null);
+  const [period, setPeriod] = useState<ReportPeriod>('thisMonth');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadInitial = async () => {
+  const loadReports = async (outletId?: number | null) => {
     try {
       setLoading(true);
       setError(null);
-      const [outletData, revenueData] = await Promise.all([api.getOutlets(), api.getRevenueReport()]);
-      setOutlets(outletData);
-      setRevenueRows(revenueData);
-      const defaultOutletId = outletData[0]?.id ?? null;
-      setSelectedOutletId(defaultOutletId);
-      if (defaultOutletId) {
-        setTopItems(await api.getTopItemsReport(defaultOutletId));
-      }
+      const summary = await api.getReportSummary(period, outletId ?? undefined);
+      setRevenueRows(summary.revenueByOutlet);
+      setSelectedOutletId(summary.selectedOutletId);
+      setTopItems(summary.topItems);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load reports');
     } finally {
@@ -36,33 +39,56 @@ export default function ReportsPage() {
   };
 
   useEffect(() => {
-    loadInitial();
+    async function loadOutlets() {
+      try {
+        setOutlets(await api.getOutlets());
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load outlets');
+      }
+    }
+
+    loadOutlets();
   }, []);
+
+  useEffect(() => {
+    loadReports(selectedOutletId);
+  }, [period]);
 
   const selectedOutletName = useMemo(
     () => outlets.find((outlet) => outlet.id === selectedOutletId)?.name || 'Outlet',
     [outlets, selectedOutletId],
   );
+  const periodLabel = useMemo(
+    () => PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? 'This Month',
+    [period],
+  );
 
   const handleOutletChange = async (outletId: number) => {
     try {
       setSelectedOutletId(outletId);
-      setLoading(true);
-      setError(null);
-      setTopItems(await api.getTopItemsReport(outletId));
+      await loadReports(outletId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load top items');
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Reports</h1>
-          <p className="text-muted-foreground">Revenue and top selling items by outlet.</p>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Reports</h1>
+            <p className="text-muted-foreground">Revenue and top selling items by outlet.</p>
+          </div>
+          <select
+            className="h-10 rounded-md border bg-background px-3 text-sm font-normal"
+            value={period}
+            onChange={(event) => setPeriod(event.target.value as ReportPeriod)}
+          >
+            {PERIOD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
         </div>
 
         {loading && revenueRows.length === 0 ? <PageState message="Loading reports..." /> : null}
@@ -74,7 +100,7 @@ export default function ReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <span>Top items by outlet</span>
+                  <span>Top items by outlet ({periodLabel})</span>
                   <select
                     className="h-10 rounded-md border bg-background px-3 text-sm font-normal"
                     value={selectedOutletId ?? ''}
