@@ -81,6 +81,7 @@ export type SaleResponse = {
 export type RevenueSummary = {
   totalRevenue: number;
   outlet: {
+    id?: number;
     name: string;
     code: string;
   };
@@ -92,4 +93,15 @@ export type TopItemSummary = {
     name: string;
     sku: string;
   };
+};
+
+export type ReportPeriod = 'today' | 'thisMonth' | 'lifetime';
+
+export type ReportSummary = {
+  period: ReportPeriod;
+  totalRevenue: number;
+  topOutlet: RevenueSummary | null;
+  selectedOutletId: number | null;
+  revenueByOutlet: RevenueSummary[];
+  topItems: TopItemSummary[];
 };

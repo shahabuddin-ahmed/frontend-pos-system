@@ -6,13 +6,20 @@ import { StatCard } from '@/components/shared/stat-card';
 import { PageState } from '@/components/shared/page-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
-import type { MasterMenuItem, Outlet, RevenueSummary } from '@/types';
+import type { MasterMenuItem, Outlet, ReportPeriod, RevenueSummary } from '@/types';
 import { formatCurrency } from '@/lib/format';
+
+const PERIOD_OPTIONS: Array<{ value: ReportPeriod; label: string }> = [
+  { value: 'today', label: 'Today' },
+  { value: 'thisMonth', label: 'This Month' },
+  { value: 'lifetime', label: 'Lifetime' },
+];
 
 export default function HqDashboardPage() {
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [menuItems, setMenuItems] = useState<MasterMenuItem[]>([]);
   const [revenueRows, setRevenueRows] = useState<RevenueSummary[]>([]);
+  const [period, setPeriod] = useState<ReportPeriod>('today');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,14 +28,14 @@ export default function HqDashboardPage() {
       try {
         setLoading(true);
         setError(null);
-        const [outletData, menuData, revenueData] = await Promise.all([
+        const [outletData, menuData, summary] = await Promise.all([
           api.getOutlets(),
           api.getHqMenu(),
-          api.getRevenueReport(),
+          api.getReportSummary(period),
         ]);
         setOutlets(outletData);
         setMenuItems(menuData);
-        setRevenueRows(revenueData);
+        setRevenueRows(summary.revenueByOutlet);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load dashboard');
       } finally {
@@ -37,7 +44,12 @@ export default function HqDashboardPage() {
     }
 
     load();
-  }, []);
+  }, [period]);
+
+  const periodLabel = useMemo(
+    () => PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? 'Today',
+    [period],
+  );
 
   const totalRevenue = useMemo(() => revenueRows.reduce((sum, row) => sum + row.totalRevenue, 0), [revenueRows]);
   const activeItems = useMemo(() => menuItems.filter((item) => item.isActive).length, [menuItems]);
@@ -46,9 +58,20 @@ export default function HqDashboardPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">HQ Dashboard</h1>
-          <p className="text-muted-foreground">Live overview of outlets, menu coverage, and sales performance.</p>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">HQ Dashboard</h1>
+            <p className="text-muted-foreground">Live overview of outlets, menu coverage, and sales performance.</p>
+          </div>
+          <select
+            className="h-10 rounded-md border bg-background px-3 text-sm font-normal"
+            value={period}
+            onChange={(event) => setPeriod(event.target.value as ReportPeriod)}
+          >
+            {PERIOD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
         </div>
 
         {loading ? <PageState message="Loading dashboard metrics..." /> : null}
@@ -60,13 +83,13 @@ export default function HqDashboardPage() {
               <StatCard title="Outlets" value={String(outlets.length)} helper="Registered branch count" />
               <StatCard title="Menu Items" value={String(menuItems.length)} helper="Total master catalog" />
               <StatCard title="Active Items" value={String(activeItems)} helper="Currently sellable items" />
-              <StatCard title="Total Revenue" value={formatCurrency(totalRevenue)} helper="Sum across all outlets" />
+              <StatCard title="Total Revenue" value={formatCurrency(totalRevenue)} helper={`${periodLabel} across all outlets`} />
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
               <Card className="rounded-2xl shadow-sm">
                 <CardHeader>
-                  <CardTitle>Revenue ranking</CardTitle>
+                  <CardTitle>Revenue ranking ({periodLabel})</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {revenueRows.length === 0 ? (
@@ -87,7 +110,7 @@ export default function HqDashboardPage() {
 
               <Card className="rounded-2xl shadow-sm">
                 <CardHeader>
-                  <CardTitle>Snapshot</CardTitle>
+                  <CardTitle>Snapshot ({periodLabel})</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm">
                   <div className="rounded-xl bg-secondary/60 p-4">

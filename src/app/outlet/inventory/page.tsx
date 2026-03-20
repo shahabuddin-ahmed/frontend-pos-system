@@ -23,7 +23,7 @@ export default function OutletInventoryPage() {
   const loadInventory = async (outletId: number) => {
     const [inventoryData, outletMenu] = await Promise.all([api.getInventoryByOutlet(outletId), api.getOutletMenuItems(outletId)]);
     setInventoryRows(inventoryData);
-    setMenuItems(outletMenu);
+    setMenuItems(outletMenu.filter((item) => item.isAvailable && item.masterMenuItem.isActive));
   };
 
   useEffect(() => {
@@ -32,11 +32,15 @@ export default function OutletInventoryPage() {
         setLoading(true);
         setError(null);
         const outletData = await api.getOutlets();
-        setOutlets(outletData);
-        const defaultOutletId = outletData[0]?.id ?? null;
+        const activeOutlets = outletData.filter((outlet) => outlet.isActive);
+        setOutlets(activeOutlets);
+        const defaultOutletId = activeOutlets[0]?.id ?? null;
         setSelectedOutletId(defaultOutletId);
         if (defaultOutletId) {
           await loadInventory(defaultOutletId);
+        } else {
+          setInventoryRows([]);
+          setMenuItems([]);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load inventory page');
@@ -97,6 +101,7 @@ export default function OutletInventoryPage() {
             className="h-10 rounded-md border bg-background px-3 text-sm"
             value={selectedOutletId ?? ''}
             onChange={(event) => handleOutletChange(Number(event.target.value))}
+            disabled={outlets.length === 0}
           >
             {outlets.map((outlet) => (
               <option key={outlet.id} value={outlet.id}>{outlet.name}</option>
@@ -140,6 +145,7 @@ export default function OutletInventoryPage() {
                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                     value={form.masterMenuItemId}
                     onChange={(event) => setForm((prev) => ({ ...prev, masterMenuItemId: event.target.value }))}
+                    disabled={menuItems.length === 0}
                     required
                   >
                     <option value="">Select assigned item</option>
@@ -155,9 +161,14 @@ export default function OutletInventoryPage() {
                     min="0"
                     value={form.currentStock}
                     onChange={(event) => setForm((prev) => ({ ...prev, currentStock: event.target.value }))}
+                    disabled={menuItems.length === 0}
                     required
                   />
-                  <Button className="w-full" type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save stock'}</Button>
+                  {outlets.length === 0 ? <PageState message="No active outlets available for inventory." /> : null}
+                  {outlets.length > 0 && menuItems.length === 0 ? <PageState message="No active assigned items available for stock updates." /> : null}
+                  <Button className="w-full" type="submit" disabled={saving || menuItems.length === 0}>
+                    {saving ? 'Saving...' : 'Save stock'}
+                  </Button>
                 </form>
               </CardContent>
             </Card>
